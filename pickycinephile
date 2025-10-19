@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Film Oneri Projesi</title>
+</head>
+<body>
+    <h1>Regem AI Destekli Film Oneri Sistemi (Gelistirme Asamasi)</h1>
+    <p>Bu site, TMDb API'si kullanilarak gelistirilmekte olan bir film oneri projesi icin GitHub Pages uzerinde barindirilmaktadir.</p>
+    <p>Veri Kaynagi: The Movie Database (TMDb)</p>
+</body>
+</html>
