@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picky Cinephile - AI Film Önerileri</title>
+    <style>
+        /* Basit CSS stilleri */
+        body { font-family: sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #34495e; text-align: center; margin-bottom: 30px; }
+        .form-container { display: flex; flex-direction: column; gap: 15px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 30px; }
+        .form-container label { font-weight: bold; margin-bottom: 5px; color: #2c3e50; }
+        .form-container input[type="text"], .form-container select, .form-container button { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .form-container button { background-color: #e74c3c; color: white; border: none; cursor: pointer; transition: background-color 0.3s; }
+        .form-container button:hover { background-color: #c0392b; }
+        
+        /* Öneri Alanı */
+        .recommendation-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 40px; }
+        .movie-card { background: #fff; border: 1px solid #eee; border-radius: 8px; overflow: hidden; width: 300px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .movie-card img { width: 100%; height: 400px; object-fit: cover; }
+        .card-content { padding: 15px; }
+        .card-content h3 { margin-top: 0; color: #2980b9; }
+        .rating { color: #f39c12; font-weight: bold; margin-bottom: 10px; }
+        .explanation { font-size: 0.9em; color: #555; }
+        .error { color: red; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Picky Cinephile - Yapay Zeka Film Önerileri</h1>
+        <p style="text-align: center;">TMDb verileri ve Gemini'nin gücüyle, en seçici zevklere uygun filmleri bulun!</p>
+
+        <form class="form-container" method="POST">
+            <label for="genre">1. İstediğiniz Ana Tür:</label>
+            <select name="genre" id="genre" required>
+                <option value="">-- Bir Tür Seçin --</option>
+                {# Python kodu, genres listesini buraya yerleştirecek #}
+                {% for genre_name in genres %}
+                    <option value="{{ genre_name }}">{{ genre_name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="film_filtresi">2. Spesifik Ruh Hali / Filtre (Örn: Plot Twist, Az Bilinen, Neşeli)</label>
+            <input type="text" name="film_filtresi" id="film_filtresi" placeholder="Örn: Az bilinen ama yüksek puanlı filmler istiyorum">
+            
+            <button type="submit">Film Önerisi Getir</button>
+        </form>
+
+        {% if recommendations %}
+            <h2>⭐ Seçici Önerileriniz:</h2>
+            {# Flask, işlenmiş HTML kartlarını buraya yerleştirecek #}
+            {{ recommendations | safe }}
+        {% endif %}
+
+        <p style="text-align: center; font-size: 0.8em; margin-top: 50px;">Veri Kaynağı: The Movie Database (TMDb) ve Gemini AI</p>
+    </div>
+</body>
+</html>
