@@ -1,2 +1,7 @@
 .env 
 .env 
+# .gitignore dosyasının içeriği
+.env
+.env.txt
+recommender.py
+*.pyc
