@@ -1,4 +1,4 @@
-# app.py içeriği (Flask Backend)
+# app.py içeriği (Flask Backend) - V4 TOKEN KULLANACAK ŞEKİLDE GÜNCELLENDİ
 
 from flask import Flask, render_template, request
 import os
@@ -9,7 +9,8 @@ from google.genai.errors import APIError
 
 # --- GİZLİ ANAHTARLARIN YÜKLENMESİ ---
 load_dotenv()
-TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+# Artık V4 Jetonunu (daha uzun olanı) çekiyoruz
+TMDB_READ_TOKEN = os.getenv("TMDB_READ_TOKEN") 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # --- FLASK UYGULAMASI ---
@@ -33,7 +34,7 @@ GENRE_ID_MAP = {
     "Suç": 80, "Belgesel": 99, "Dram": 18, "Aile": 10751,
     "Fantastik": 14, "Tarih": 36, "Korku": 27, "Müzik": 10402,
     "Gizem": 9648, "Romantik": 10749, "Bilim Kurgu": 878, "Gerilim": 53, 
-    "Savaş": 10752, "Western": 37, "Tüm Türler (Popüler)": 0 # Tüm popüler filmler için özel ID
+    "Savaş": 10752, "Western": 37, "Tüm Türler (Popüler)": 0
 }
 
 # --- TMDb'den veri çekme fonksiyonu ---
@@ -45,11 +46,10 @@ def get_movies_from_tmdb(genre_name, film_filtresi):
     # Tüm popüler filmleri çekmek için özel durum
     if genre_id == 0:
         TMDB_URL = "https://api.themoviedb.org/3/movie/popular"
-        params = {'api_key': TMDB_API_KEY, 'language': 'en-US'}
+        params = {'language': 'en-US'}
     else:
         # Normal filtreleme mantığı
         params = {
-            'api_key': TMDB_API_KEY,               
             'with_genres': genre_id,               
             'sort_by': 'popularity.desc', 
             'vote_average.gte': 6.5,      
@@ -60,11 +60,18 @@ def get_movies_from_tmdb(genre_name, film_filtresi):
              params['vote_count.lte'] = 1000  
              params['vote_average.gte'] = 7.0 
     
+    # V4 TOKEN KULLANILARAK GÜVENLİ BAĞLANTI (401 HATASINI ÇÖZER)
+    headers = {
+        "Authorization": f"Bearer {TMDB_READ_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
     try:
-        response = requests.get(TMDB_URL, params=params)
+        # İstek gönderilirken 'api_key' parametresi yerine 'headers' kullanılıyor
+        response = requests.get(TMDB_URL, headers=headers, params=params)
         response.raise_for_status() 
 
-        movies_list = response.json().get('results', [])[:20] # 20 film çekiyoruz
+        movies_list = response.json().get('results', [])[:20] 
         
         context_data = []
         for movie in movies_list:
@@ -125,8 +132,7 @@ Movies:
         )
         return response.text
     except Exception as e:
-        # Eğer çok uzun bir prompt olursa buraya düşebilir.
-        return f"Gemini API Hatası: {e}. Lütfen filtreyi kısaltın veya TMDb API anahtarınızı kontrol edin."
+        return f"Gemini API Hatası: {e}. Lütfen filtreyi kısaltın veya bağlantınızı kontrol edin."
 
 
 # --- YANITI WEB İÇİN İŞLEME FONKSİYONU ---
@@ -136,7 +142,6 @@ def format_recommendation_for_web(raw_text, full_movie_list):
     
     lines = raw_text.split('\n')
     
-    # Eğer Gemini hata döndürdüyse
     if not lines or "Gemini API Hatası" in raw_text:
         return f"<p class='error'>Öneri alınamadı: {raw_text}</p>"
         
@@ -145,7 +150,6 @@ def format_recommendation_for_web(raw_text, full_movie_list):
     for line in lines:
         if line.startswith(('1.', '2.', '3.')):
             
-            # Filmin adını çekme
             movie_title = None
             try:
                 title_start = line.find('**') + 2
@@ -154,15 +158,11 @@ def format_recommendation_for_web(raw_text, full_movie_list):
             except:
                 continue
 
-            # Tam filmi (afiş URL'si ile) listede ara
             movie_data = next((m for m in full_movie_list if m['title'] == movie_title), None)
             
-            # HTML Kartını Oluştur
             if movie_data:
-                # Açıklama kısmı
                 explanation = line.split(']:')[-1].strip()
                 
-                # Resim yolu yoksa varsayılan resim koy
                 poster_src = movie_data['poster_url'] if movie_data['poster_url'].endswith('null') == False else 'static/placeholder.png'
                 
                 html_output += f"""
@@ -187,25 +187,4 @@ def index():
     
     if request.method == 'POST':
         user_genre = request.form['genre']
-        user_filter = request.form['film_filtresi']
-        
-        # 1. TMDb'den filmleri çek
-        movie_context = get_movies_from_tmdb(user_genre, user_filter)
-        
-        if isinstance(movie_context, str):
-            recommendations_html = f"<p class='error'>{movie_context}</p>"
-        else:
-            # 2. Gemini'den öneri al
-            gemini_response = get_gemini_recommendation(user_genre, user_filter, movie_context)
-            
-            # 3. Yanıtı işle ve HTML'e dönüştür
-            recommendations_html = format_recommendation_for_web(gemini_response, movie_context)
-
-    # index.html dosyasını göster
-    return render_template('index.html', 
-                           recommendations=recommendations_html,
-                           genres=GENRE_ID_MAP.keys())
-
-# --- SUNUCUYU ÇALIŞTIRMA (Render bu kısmı kullanmaz, Procfile kullanır) ---
-if __name__ == '__main__':
-    app.run(debug=True)
+        user_filter = request.form['film_
