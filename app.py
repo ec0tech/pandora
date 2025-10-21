@@ -1,4 +1,4 @@
-# app.py içeriği (Flask Backend) - V4 TOKEN KULLANACAK ŞEKİLDE GÜNCELLENDİ
+# app.py içeriği (Flask Backend) - 401 HATASINI ÇÖZECEK YENİ VERSİYON
 
 from flask import Flask, render_template, request
 import os
@@ -9,7 +9,7 @@ from google.genai.errors import APIError
 
 # --- GİZLİ ANAHTARLARIN YÜKLENMESİ ---
 load_dotenv()
-# Artık V4 Jetonunu (daha uzun olanı) çekiyoruz
+# V4 Jetonunu (daha uzun olanı) çekiyoruz
 TMDB_READ_TOKEN = os.getenv("TMDB_READ_TOKEN") 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -61,13 +61,14 @@ def get_movies_from_tmdb(genre_name, film_filtresi):
              params['vote_average.gte'] = 7.0 
     
     # V4 TOKEN KULLANILARAK GÜVENLİ BAĞLANTI (401 HATASINI ÇÖZER)
+    # Authorization header'ı, V4 Jetonunu taşır.
     headers = {
         "Authorization": f"Bearer {TMDB_READ_TOKEN}",
         "Content-Type": "application/json"
     }
 
     try:
-        # İstek gönderilirken 'api_key' parametresi yerine 'headers' kullanılıyor
+        # İstek gönderilirken 'headers' kullanılıyor
         response = requests.get(TMDB_URL, headers=headers, params=params)
         response.raise_for_status() 
 
@@ -187,4 +188,26 @@ def index():
     
     if request.method == 'POST':
         user_genre = request.form['genre']
-        user_filter = request.form['film_
+        # KESİK KISIM DÜZELTİLDİ: 
+        user_filter = request.form['film_filtresi']
+        
+        # 1. TMDb'den filmleri çek
+        movie_context = get_movies_from_tmdb(user_genre, user_filter)
+        
+        if isinstance(movie_context, str):
+            recommendations_html = f"<p class='error'>{movie_context}</p>"
+        else:
+            # 2. Gemini'den öneri al
+            gemini_response = get_gemini_recommendation(user_genre, user_filter, movie_context)
+            
+            # 3. Yanıtı işle ve HTML'e dönüştür
+            recommendations_html = format_recommendation_for_web(gemini_response, movie_context)
+
+    # index.html dosyasını göster
+    return render_template('index.html', 
+                           recommendations=recommendations_html,
+                           genres=GENRE_ID_MAP.keys())
+
+# --- SUNUCUYU ÇALIŞTIRMA (Render bu kısmı kullanmaz, Procfile kullanır) ---
+if __name__ == '__main__':
+    app.run(debug=True)
